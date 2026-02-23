@@ -3,7 +3,7 @@ const auditLogModel = require('../models/auditLogModel');
 const bcrypt = require('bcrypt');
 
 const { ROLES_VALIDOS } = require('../middlewares/validationMiddleware');
-const { getPagination } = require('../utils/pagination');
+
 
 // ================== REGISTRAR EMPLEADO ==================
 const register = async (req, res) => {
@@ -228,26 +228,6 @@ const updateMyProfile = async (req, res) => {
     const allowed = ['telefono', 'domicilio', 'estado_civil', 'correo'];
     const data = {};
 
-    allowed.forEach(field => {
-      if (req.body[field] !== undefined) {
-        data[field] = req.body[field];
-      }
-    });
-
-    const updated = await userModel.updatePartial(req.user.id, data);
-
-    if (!updated) {
-      return res.status(404).json({ message: 'Perfil no encontrado' });
-    }
-
-    await auditLogModel.create({
-      user_id: req.user.id,
-      action: 'UPDATE_PROFILE',
-      entity: 'EMPLEADO',
-      entity_id: req.user.id,
-      details: data
-    });
-
     return res.json({ message: 'Perfil actualizado correctamente' });
   } catch (error) {
     console.error('Error al actualizar perfil:', error);
@@ -259,6 +239,7 @@ const updateEmployeePermissions = async (req, res) => {
   try {
     const { id } = req.params;
     const { rol } = req.body;
+
 
     if (!rol || !ROLES_VALIDOS.includes(rol)) {
       return res.status(400).json({

@@ -70,6 +70,7 @@ const deleteFile = async (req, res) => {
       return res.status(404).json({ message: 'Archivo no encontrado' });
     }
 
+
     const relativePath = file.archivo_url.replace(/^\/+/, '');
     const filePath = path.resolve(process.cwd(), relativePath);
     if (fs.existsSync(filePath)) {

@@ -10,13 +10,13 @@ const login = async (req, res) => {
         const user = await userModel.findByNomina(num_nomina);
 
         if (!user) {
-            return res.status(404).json({ message: "El número de nomina no está registrado" });
+            return res.status(404).json({ message: 'El número de nomina no está registrado' });
         }
 
         const isMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!isMatch) {
-            return res.status(401).json({ message: "La contraseña es incorrecta" });
+            return res.status(401).json({ message: 'La contraseña es incorrecta' });
         }
 
         const token = jwt.sign(
@@ -25,13 +25,13 @@ const login = async (req, res) => {
             { expiresIn: '1h' }
         );
 
-        res.cookie('token', token, {
+        return res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
             maxAge: 60 * 60 * 1000
         }).json({
-            message: "Login exitoso",
+            message: 'Login exitoso',
             user: {
                 nombre: user.nombre,
                 rol: user.rol,
@@ -40,8 +40,8 @@ const login = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error en el login:", error);
-        res.status(500).json({ error: "Ocurrió un error en el servidor" });
+        console.error('Error en el login:', error);
+        return res.status(500).json({ message: 'Ocurrió un error en el servidor' });
     }
 };
 
@@ -67,10 +67,13 @@ const me = async (req, res) => {
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
         const user = await userModel.findById(decoded.id);
 
-        res.json({
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        return res.json({
             id: user.id_empleado,
             nombre: user.nombre,
             rol: user.rol,

@@ -108,8 +108,12 @@ const update = async (id, userData) => {
 
 const updatePartial = async (id, data) => {
   const fields = Object.keys(data);
-  const values = Object.values(data);
 
+  if (!fields.length) {
+    return false;
+  }
+
+  const values = Object.values(data);
   const setClause = fields.map(field => `${field} = ?`).join(', ');
 
   const sql = `

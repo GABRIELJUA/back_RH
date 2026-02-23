@@ -3,7 +3,9 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 require('dotenv').config();
 
-// Importar rutas (las crearemos en el siguiente paso)
+const { notFoundHandler, errorHandler } = require('./middlewares/errorMiddleware');
+
+// Importar rutas
 const authRoutes = require('./routes/authRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
 const sugerenciaRoutes = require('./routes/sugerencias.routes');
@@ -13,20 +15,19 @@ const dashboardRoutes = require('./routes/dashboard.routes');
 const vacacionesRoutes = require('./routes/vacaciones.routes');
 const notificacionesRoutes = require('./routes/notificaciones.routes');
 
-
 const app = express();
 app.use('/uploads', express.static('uploads'));
 
 // --- Middlewares Globales ---
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:4200')
+  .split(',')
+  .map((origin) => origin.trim());
 
-// 1. CORS: Permite que tu Frontend se comunique con el Backend
 app.use(cors({
-    origin: 'http://localhost:4200', // O la URL de tu frontend (ej. Vite)
-    credentials: true // Indispensable para permitir el envío de cookies
+  origin: allowedOrigins,
+  credentials: true
 }));
 
-
-// 2. Lectura de JSON y Cookies
 app.use(express.json());
 app.use(cookieParser());
 
@@ -40,15 +41,14 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/vacaciones', vacacionesRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
 
-
-
-
-// Ruta de prueba para verificar que el servidor vive
 app.get('/', (req, res) => {
-    res.send('Servidor del Hotel Posada Tampico funcionando 🏨');
+  res.send('Servidor del Hotel Posada Tampico funcionando 🏨');
 });
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor Deposada tampico corriendo en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor Deposada tampico corriendo en http://localhost:${PORT}`);
 });

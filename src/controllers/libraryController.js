@@ -56,7 +56,8 @@ const deleteFile = async (req, res) => {
     }
 
     // borrar archivo físico
-    const filePath = path.join(__dirname, '..', file.archivo_url);
+    const relativePath = file.archivo_url.replace(/^\/+/, '');
+    const filePath = path.resolve(process.cwd(), relativePath);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }

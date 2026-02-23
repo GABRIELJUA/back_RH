@@ -1,13 +1,7 @@
 const userModel = require('../models/userModel');
 const bcrypt = require('bcrypt');
 
-// Roles permitidos en el sistema
-const ROLES_VALIDOS = [
-  'ADMIN',
-  'ADMIN_EDITOR',
-  'ADMIN_LECTURA',
-  'EMPLEADO'
-];
+const { ROLES_VALIDOS } = require('../middlewares/validationMiddleware');
 
 // ================== REGISTRAR EMPLEADO ==================
 const register = async (req, res) => {
@@ -211,18 +205,27 @@ const getMyProfile = async (req, res) => {
 
 // ================== ACTUALIZAR PERFIL PROPIO ==================
 const updateMyProfile = async (req, res) => {
-  const allowed = ['telefono', 'domicilio', 'estado_civil', 'correo'];
-  const data = {};
+  try {
+    const allowed = ['telefono', 'domicilio', 'estado_civil', 'correo'];
+    const data = {};
 
-  allowed.forEach(field => {
-    if (req.body[field] !== undefined) {
-      data[field] = req.body[field];
+    allowed.forEach(field => {
+      if (req.body[field] !== undefined) {
+        data[field] = req.body[field];
+      }
+    });
+
+    const updated = await userModel.updatePartial(req.user.id, data);
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Perfil no encontrado' });
     }
-  });
 
-  await userModel.updatePartial(req.user.id, data);
-
-  res.json({ message: 'Perfil actualizado correctamente' });
+    return res.json({ message: 'Perfil actualizado correctamente' });
+  } catch (error) {
+    console.error('Error al actualizar perfil:', error);
+    return res.status(500).json({ message: 'Error al actualizar perfil' });
+  }
 };
 
 
@@ -232,13 +235,6 @@ const updateEmployeePermissions = async (req, res) => {
     const { rol } = req.body;
 
     // 🔐 Validar rol
-    const ROLES_VALIDOS = [
-      'ADMIN',
-      'ADMIN_EDITOR',
-      'ADMIN_LECTURA',
-      'EMPLEADO'
-    ];
-
     if (!rol || !ROLES_VALIDOS.includes(rol)) {
       return res.status(400).json({
         message: 'Rol no válido'

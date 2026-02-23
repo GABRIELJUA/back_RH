@@ -1,69 +1,54 @@
 const express = require('express');
 const router = express.Router();
 
-const {getEmployees, register, updateEmployee, getEmployeeById, getMyProfile, updateMyProfile, updateEmployeePermissions} = require('../controllers/employeeController');
+const {
+  getEmployees,
+  register,
+  updateEmployee,
+  getEmployeeById,
+  getMyProfile,
+  updateMyProfile,
+  updateEmployeePermissions,
+  resetEmployeePassword
+} = require('../controllers/employeeController');
 
 const { verifyToken } = require('../middlewares/authMiddleware');
 const { allowRoles } = require('../middlewares/roleMiddleware');
-
+const {
+  validateEmployeePayload,
+  validateProfilePayload,
+  validateResetPasswordPayload
+} = require('../middlewares/validationMiddleware');
 
 // ================== EMPLEADO ==================
+router.get('/profile/me', verifyToken, getMyProfile);
 
-// Perfil del usuario logueado (ADMIN o EMPLEADO)
-router.get(
-  '/profile/me',
-  verifyToken,
-  getMyProfile
-);
-
-// Actualizar su propio perfil
-router.put(
-  '/profile/me',
-  verifyToken,
-  updateMyProfile
-);
+router.put('/profile/me', verifyToken, validateProfilePayload, updateMyProfile);
 
 // ================== ADMIN / RH ==================
+router.get('/', verifyToken, allowRoles('ADMIN', 'ADMIN_EDITOR', 'ADMIN_LECTURA'), getEmployees);
 
-// Ver lista de empleados
-router.get(
-  '/',
-  verifyToken,
-  allowRoles('ADMIN', 'ADMIN_EDITOR', 'ADMIN_LECTURA'),
-  getEmployees
-);
-
-// Registrar empleado
 router.post(
   '/register',
   verifyToken,
   allowRoles('ADMIN'),
+  validateEmployeePayload,
   register
 );
 
-// Editar empleado
-router.put(
-  '/edit/:id',
-  verifyToken,
-  allowRoles('ADMIN', 'ADMIN_EDITOR'),
-  updateEmployee
-);
+router.put('/edit/:id', verifyToken, allowRoles('ADMIN', 'ADMIN_EDITOR'), updateEmployee);
 
-// Ver empleado por ID
-router.get(
-  '/:id',
-  verifyToken,
-  allowRoles('ADMIN', 'ADMIN_EDITOR', 'ADMIN_LECTURA'),
-  getEmployeeById
-);
+router.get('/:id', verifyToken, allowRoles('ADMIN', 'ADMIN_EDITOR', 'ADMIN_LECTURA'), getEmployeeById);
 
-// Actualizar permisos
+router.patch('/permissions/:id', verifyToken, allowRoles('ADMIN'), updateEmployeePermissions);
+
+
 router.patch(
-  '/permissions/:id',
+  '/:id/reset-password',
   verifyToken,
   allowRoles('ADMIN'),
-  updateEmployeePermissions
+  validateResetPasswordPayload,
+  resetEmployeePassword
 );
-
 
 module.exports = router;

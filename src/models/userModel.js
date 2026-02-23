@@ -108,8 +108,12 @@ const update = async (id, userData) => {
 
 const updatePartial = async (id, data) => {
   const fields = Object.keys(data);
-  const values = Object.values(data);
 
+  if (!fields.length) {
+    return false;
+  }
+
+  const values = Object.values(data);
   const setClause = fields.map(field => `${field} = ?`).join(', ');
 
   const sql = `
@@ -127,8 +131,39 @@ const updatePartial = async (id, data) => {
 
 
 // Obtener todos los empleados
-const getAll = async () => {
-    const [rows] = await db.query(`
+const getAll = async (filters = {}, pagination = null) => {
+    const whereClauses = [];
+    const values = [];
+
+    if (filters.departamento) {
+        whereClauses.push('departamento = ?');
+        values.push(filters.departamento);
+    }
+
+    if (filters.puesto) {
+        whereClauses.push('puesto = ?');
+        values.push(filters.puesto);
+    }
+
+    if (filters.estatus) {
+        whereClauses.push('rol = ?');
+        values.push(filters.estatus);
+    }
+
+    if (filters.q) {
+        whereClauses.push(`(
+            nombre LIKE ? OR
+            apellido_paterno LIKE ? OR
+            apellido_materno LIKE ? OR
+            num_nomina LIKE ?
+        )`);
+        const term = `%${filters.q}%`;
+        values.push(term, term, term, term);
+    }
+
+    const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    const baseSelect = `
         SELECT 
             id_empleado,
             num_nomina,
@@ -150,10 +185,32 @@ const getAll = async () => {
             estado_civil,
             edad
         FROM empleados
+        ${whereSql}
         ORDER BY fecha_ingreso DESC
-    `);
+    `;
 
-    return rows;
+    if (!pagination) {
+        const [rows] = await db.query(baseSelect, values);
+        return rows;
+    }
+
+    const [rows] = await db.query(
+        `${baseSelect} LIMIT ? OFFSET ?`,
+        [...values, pagination.limit, pagination.offset]
+    );
+
+    const [countRows] = await db.query(
+        `SELECT COUNT(*) AS total FROM empleados ${whereSql}`,
+        values
+    );
+
+    return {
+        data: rows,
+        total: countRows[0].total,
+        page: pagination.page,
+        limit: pagination.limit,
+        totalPages: Math.ceil(countRows[0].total / pagination.limit)
+    };
 };
 
 

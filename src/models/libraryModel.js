@@ -21,17 +21,55 @@ const create = async (data) => {
 };
 
 // ================== LISTAR ==================
-const getAll = async () => {
-  const [rows] = await db.query(`
+const getAll = async (filters = {}, pagination = null) => {
+  const whereClauses = [];
+  const values = [];
+
+  if (filters.categoria) {
+    whereClauses.push('b.categoria = ?');
+    values.push(filters.categoria);
+  }
+
+  if (filters.q) {
+    whereClauses.push('(b.titulo LIKE ? OR b.descripcion LIKE ?)');
+    const term = `%${filters.q}%`;
+    values.push(term, term);
+  }
+
+  const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+  const baseQuery = `
     SELECT 
       b.*,
       CONCAT(e.nombre,' ',e.apellido_paterno) AS subido_nombre
     FROM biblioteca b
     LEFT JOIN empleados e ON e.id_empleado = b.subido_por
+    ${whereSql}
     ORDER BY b.fecha_subida DESC
-  `);
+  `;
 
-  return rows;
+  if (!pagination) {
+    const [rows] = await db.query(baseQuery, values);
+    return rows;
+  }
+
+  const [rows] = await db.query(
+    `${baseQuery} LIMIT ? OFFSET ?`,
+    [...values, pagination.limit, pagination.offset]
+  );
+
+  const [countRows] = await db.query(
+    `SELECT COUNT(*) AS total FROM biblioteca b ${whereSql}`,
+    values
+  );
+
+  return {
+    data: rows,
+    total: countRows[0].total,
+    page: pagination.page,
+    limit: pagination.limit,
+    totalPages: Math.ceil(countRows[0].total / pagination.limit)
+  };
 };
 
 // ================== ELIMINAR ==================

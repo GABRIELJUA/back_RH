@@ -59,9 +59,30 @@ const validateProfilePayload = (req, res, next) => {
   next();
 };
 
+
+const validateResetPasswordPayload = (req, res, next) => {
+  const { new_password } = req.body;
+
+  if (!new_password) {
+    return res.status(400).json({
+      message: 'La nueva contraseña es obligatoria'
+    });
+  }
+
+  if (typeof new_password !== 'string' || new_password.trim().length < 8) {
+    return res.status(400).json({
+      message: 'La nueva contraseña debe tener al menos 8 caracteres'
+    });
+  }
+
+  req.body.new_password = new_password.trim();
+  next();
+};
+
 module.exports = {
   validateLoginPayload,
   validateEmployeePayload,
   validateProfilePayload,
+  validateResetPasswordPayload,
   ROLES_VALIDOS
 };

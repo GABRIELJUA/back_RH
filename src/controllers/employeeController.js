@@ -4,7 +4,6 @@ const bcrypt = require('bcrypt');
 
 const { ROLES_VALIDOS } = require('../middlewares/validationMiddleware');
 
-
 // ================== REGISTRAR EMPLEADO ==================
 const register = async (req, res) => {
   try {
@@ -228,6 +227,7 @@ const updateMyProfile = async (req, res) => {
     const allowed = ['telefono', 'domicilio', 'estado_civil', 'correo'];
     const data = {};
 
+
     return res.json({ message: 'Perfil actualizado correctamente' });
   } catch (error) {
     console.error('Error al actualizar perfil:', error);
@@ -275,6 +275,7 @@ const updateEmployeePermissions = async (req, res) => {
   }
 };
 
+
 module.exports = {
   register,
   getEmployees,
@@ -282,5 +283,6 @@ module.exports = {
   updateEmployee,
   getMyProfile,
   updateMyProfile,
-  updateEmployeePermissions
+  updateEmployeePermissions,
+  resetEmployeePassword
 };

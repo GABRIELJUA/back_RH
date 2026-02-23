@@ -8,14 +8,16 @@ const {
   getEmployeeById,
   getMyProfile,
   updateMyProfile,
-  updateEmployeePermissions
+  updateEmployeePermissions,
+  resetEmployeePassword
 } = require('../controllers/employeeController');
 
 const { verifyToken } = require('../middlewares/authMiddleware');
 const { allowRoles } = require('../middlewares/roleMiddleware');
 const {
   validateEmployeePayload,
-  validateProfilePayload
+  validateProfilePayload,
+  validateResetPasswordPayload
 } = require('../middlewares/validationMiddleware');
 
 // ================== EMPLEADO ==================
@@ -39,5 +41,14 @@ router.put('/edit/:id', verifyToken, allowRoles('ADMIN', 'ADMIN_EDITOR'), update
 router.get('/:id', verifyToken, allowRoles('ADMIN', 'ADMIN_EDITOR', 'ADMIN_LECTURA'), getEmployeeById);
 
 router.patch('/permissions/:id', verifyToken, allowRoles('ADMIN'), updateEmployeePermissions);
+
+
+router.patch(
+  '/:id/reset-password',
+  verifyToken,
+  allowRoles('ADMIN'),
+  validateResetPasswordPayload,
+  resetEmployeePassword
+);
 
 module.exports = router;

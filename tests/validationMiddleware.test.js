@@ -4,7 +4,8 @@ const assert = require('node:assert/strict');
 const {
   validateLoginPayload,
   validateEmployeePayload,
-  validateProfilePayload
+  validateProfilePayload,
+  validateResetPasswordPayload
 } = require('../src/middlewares/validationMiddleware');
 
 const createRes = () => {
@@ -64,4 +65,32 @@ test('validateProfilePayload exige al menos un campo permitido', () => {
 
   assert.equal(nextCalled, false);
   assert.equal(res.statusCode, 400);
+});
+
+
+test('validateResetPasswordPayload rechaza contraseña corta', () => {
+  const req = { body: { new_password: '12345' } };
+  const res = createRes();
+  let nextCalled = false;
+
+  validateResetPasswordPayload(req, res, () => {
+    nextCalled = true;
+  });
+
+  assert.equal(nextCalled, false);
+  assert.equal(res.statusCode, 400);
+  assert.deepEqual(res.body, { message: 'La nueva contraseña debe tener al menos 8 caracteres' });
+});
+
+test('validateResetPasswordPayload acepta contraseña válida y la limpia', () => {
+  const req = { body: { new_password: '  nuevaClave123  ' } };
+  const res = createRes();
+  let nextCalled = false;
+
+  validateResetPasswordPayload(req, res, () => {
+    nextCalled = true;
+  });
+
+  assert.equal(nextCalled, true);
+  assert.equal(req.body.new_password, 'nuevaClave123');
 });

@@ -1,4 +1,6 @@
 const comunicadoModel = require('../models/comunicadoModel');
+const auditLogModel = require('../models/auditLogModel');
+const { getPagination } = require('../utils/pagination');
 const multer = require('multer');
 const path = require('path');
 
@@ -38,6 +40,14 @@ const crearComunicado = async (req, res) => {
       creado_por: req.user.id
     });
 
+    await auditLogModel.create({
+      user_id: req.user.id,
+      action: 'CREATE',
+      entity: 'COMUNICADO',
+      entity_id: id,
+      details: { titulo, fecha_publicacion }
+    });
+
     res.status(201).json({
       message: 'Comunicado creado',
       id
@@ -52,7 +62,15 @@ const crearComunicado = async (req, res) => {
 // ================= LISTAR =================
 const getComunicados = async (req, res) => {
   try {
-    const rows = await comunicadoModel.getAll();
+    const filters = {
+      fecha_desde: req.query.fecha_desde,
+      fecha_hasta: req.query.fecha_hasta,
+      categoria: req.query.categoria,
+      q: req.query.q
+    };
+
+    const pagination = getPagination(req.query);
+    const rows = await comunicadoModel.getAll(filters, pagination);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener comunicados' });
@@ -88,7 +106,6 @@ const updateComunicado = async (req, res) => {
 
     let archivo_url = actual.archivo_url;
 
-    // si suben nuevo archivo reemplaza
     if (req.file) {
       archivo_url = `/uploads/comunicados/${req.file.filename}`;
     }
@@ -104,6 +121,14 @@ const updateComunicado = async (req, res) => {
       return res.status(400).json({ message: 'No se pudo actualizar' });
     }
 
+    await auditLogModel.create({
+      user_id: req.user.id,
+      action: 'UPDATE',
+      entity: 'COMUNICADO',
+      entity_id: id,
+      details: { titulo, fecha_publicacion }
+    });
+
     res.json({ message: 'Comunicado actualizado' });
 
   } catch (error) {
@@ -115,11 +140,20 @@ const updateComunicado = async (req, res) => {
 // ================= ELIMINAR =================
 const deleteComunicado = async (req, res) => {
   try {
-    const ok = await comunicadoModel.remove(req.params.id);
+    const id = req.params.id;
+    const ok = await comunicadoModel.remove(id);
 
     if (!ok) {
       return res.status(404).json({ message: 'No encontrado' });
     }
+
+    await auditLogModel.create({
+      user_id: req.user.id,
+      action: 'DELETE',
+      entity: 'COMUNICADO',
+      entity_id: id,
+      details: {}
+    });
 
     res.json({ message: 'Comunicado eliminado' });
 

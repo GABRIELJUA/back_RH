@@ -3,7 +3,6 @@ const auditLogModel = require('../models/auditLogModel');
 const bcrypt = require('bcrypt');
 
 const { ROLES_VALIDOS } = require('../middlewares/validationMiddleware');
-const { getPagination } = require('../utils/pagination');
 
 // ================== REGISTRAR EMPLEADO ==================
 const register = async (req, res) => {
@@ -228,25 +227,6 @@ const updateMyProfile = async (req, res) => {
     const allowed = ['telefono', 'domicilio', 'estado_civil', 'correo'];
     const data = {};
 
-    allowed.forEach(field => {
-      if (req.body[field] !== undefined) {
-        data[field] = req.body[field];
-      }
-    });
-
-    const updated = await userModel.updatePartial(req.user.id, data);
-
-    if (!updated) {
-      return res.status(404).json({ message: 'Perfil no encontrado' });
-    }
-
-    await auditLogModel.create({
-      user_id: req.user.id,
-      action: 'UPDATE_PROFILE',
-      entity: 'EMPLEADO',
-      entity_id: req.user.id,
-      details: data
-    });
 
     return res.json({ message: 'Perfil actualizado correctamente' });
   } catch (error) {
@@ -259,6 +239,7 @@ const updateEmployeePermissions = async (req, res) => {
   try {
     const { id } = req.params;
     const { rol } = req.body;
+
 
     if (!rol || !ROLES_VALIDOS.includes(rol)) {
       return res.status(400).json({
@@ -294,41 +275,6 @@ const updateEmployeePermissions = async (req, res) => {
   }
 };
 
-
-const resetEmployeePassword = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { new_password } = req.body;
-
-    const employee = await userModel.findById(id);
-    if (!employee) {
-      return res.status(404).json({ message: 'Empleado no encontrado' });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(new_password, salt);
-
-    const updated = await userModel.updatePartial(id, { password_hash });
-    if (!updated) {
-      return res.status(400).json({ message: 'No se pudo actualizar la contraseña' });
-    }
-
-    await auditLogModel.create({
-      user_id: req.user.id,
-      action: 'RESET_PASSWORD',
-      entity: 'EMPLEADO',
-      entity_id: id,
-      details: { by_admin: true }
-    });
-
-    return res.json({
-      message: 'Contraseña actualizada correctamente. Comparte la nueva contraseña al empleado.'
-    });
-  } catch (error) {
-    console.error('Error al resetear contraseña:', error);
-    return res.status(500).json({ message: 'Error al actualizar contraseña' });
-  }
-};
 
 module.exports = {
   register,

@@ -1,14 +1,15 @@
 const userModel = require('../models/userModel');
+const auditLogModel = require('../models/auditLogModel');
 const bcrypt = require('bcrypt');
 
 const { ROLES_VALIDOS } = require('../middlewares/validationMiddleware');
+
 
 // ================== REGISTRAR EMPLEADO ==================
 const register = async (req, res) => {
   try {
     const userData = req.body;
 
-    // Validar rol
     if (userData.rol) {
       if (!ROLES_VALIDOS.includes(userData.rol)) {
         return res.status(400).json({ message: 'Rol no válido' });
@@ -23,13 +24,10 @@ const register = async (req, res) => {
       userData.rol = 'EMPLEADO';
     }
 
-    // ================= LIMPIAR NÓMINA =================
     if (userData.num_nomina !== undefined) {
       userData.num_nomina = String(userData.num_nomina).trim();
     }
 
-
-    // ================= VALIDAR NÓMINA =================
     if (!userData.num_nomina) {
       return res.status(400).json({
         message: 'El número de nómina es obligatorio'
@@ -42,7 +40,6 @@ const register = async (req, res) => {
       });
     }
 
-    // Encriptar contraseña
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(userData.password, salt);
 
@@ -51,13 +48,24 @@ const register = async (req, res) => {
 
     const employeeId = await userModel.create(userData);
 
+    await auditLogModel.create({
+      user_id: req.user.id,
+      action: 'CREATE',
+      entity: 'EMPLEADO',
+      entity_id: employeeId,
+      details: {
+        num_nomina: userData.num_nomina,
+        rol: userData.rol,
+        nombre: userData.nombre
+      }
+    });
+
     res.status(201).json({
       message: 'Empleado registrado exitosamente',
       id: employeeId
     });
 
   } catch (error) {
-
     if (error.code === 'ER_DUP_ENTRY') {
       let message = 'Dato duplicado';
 
@@ -91,9 +99,7 @@ const updateEmployee = async (req, res) => {
     const { id } = req.params;
     const userData = req.body;
 
-    // ================= VALIDAR NÓMINA =================
     if (userData.num_nomina !== undefined) {
-
       userData.num_nomina = String(userData.num_nomina).trim();
 
       if (!/^[0-9]{4}$/.test(userData.num_nomina)) {
@@ -103,7 +109,6 @@ const updateEmployee = async (req, res) => {
       }
     }
 
-    // ================= VALIDAR ROL =================
     if (userData.rol) {
       if (!ROLES_VALIDOS.includes(userData.rol)) {
         return res.status(400).json({
@@ -126,12 +131,19 @@ const updateEmployee = async (req, res) => {
       });
     }
 
+    await auditLogModel.create({
+      user_id: req.user.id,
+      action: 'UPDATE',
+      entity: 'EMPLEADO',
+      entity_id: id,
+      details: userData
+    });
+
     res.json({
       message: 'Empleado actualizado correctamente'
     });
 
   } catch (error) {
-
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({
         message: 'Dato duplicado'
@@ -145,11 +157,18 @@ const updateEmployee = async (req, res) => {
   }
 };
 
-
 // ================== LISTAR EMPLEADOS ==================
 const getEmployees = async (req, res) => {
   try {
-    const employees = await userModel.getAll();
+    const filters = {
+      departamento: req.query.departamento,
+      puesto: req.query.puesto,
+      estatus: req.query.estatus,
+      q: req.query.q
+    };
+
+    const pagination = getPagination(req.query);
+    const employees = await userModel.getAll(filters, pagination);
     res.json(employees);
   } catch (error) {
     console.error('Error al listar empleados:', error);
@@ -209,18 +228,6 @@ const updateMyProfile = async (req, res) => {
     const allowed = ['telefono', 'domicilio', 'estado_civil', 'correo'];
     const data = {};
 
-    allowed.forEach(field => {
-      if (req.body[field] !== undefined) {
-        data[field] = req.body[field];
-      }
-    });
-
-    const updated = await userModel.updatePartial(req.user.id, data);
-
-    if (!updated) {
-      return res.status(404).json({ message: 'Perfil no encontrado' });
-    }
-
     return res.json({ message: 'Perfil actualizado correctamente' });
   } catch (error) {
     console.error('Error al actualizar perfil:', error);
@@ -228,20 +235,18 @@ const updateMyProfile = async (req, res) => {
   }
 };
 
-
 const updateEmployeePermissions = async (req, res) => {
   try {
     const { id } = req.params;
     const { rol } = req.body;
 
-    // 🔐 Validar rol
+
     if (!rol || !ROLES_VALIDOS.includes(rol)) {
       return res.status(400).json({
         message: 'Rol no válido'
       });
     }
 
-    // 🔐 Solo ADMIN puede cambiar permisos
     if (req.user.rol !== 'ADMIN') {
       return res.status(403).json({
         message: 'No tienes permisos para cambiar roles'
@@ -249,6 +254,14 @@ const updateEmployeePermissions = async (req, res) => {
     }
 
     await userModel.updatePartial(id, { rol });
+
+    await auditLogModel.create({
+      user_id: req.user.id,
+      action: 'UPDATE_ROLE',
+      entity: 'EMPLEADO',
+      entity_id: id,
+      details: { rol }
+    });
 
     res.json({
       message: 'Permisos actualizados correctamente'
@@ -261,7 +274,6 @@ const updateEmployeePermissions = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   register,

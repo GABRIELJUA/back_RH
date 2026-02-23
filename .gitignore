@@ -1,0 +1,17 @@
+# Variables de entorno
+.env
+
+# Dependencias
+node_modules/
+server.js
+
+# Carpeta de uploads (si guarda imágenes o archivos temporales)
+uploads/
+
+# Logs
+*.log
+logs/
+
+# Sistema
+.DS_Store
+Thumbs.db

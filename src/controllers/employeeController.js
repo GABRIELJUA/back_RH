@@ -275,6 +275,47 @@ const updateEmployeePermissions = async (req, res) => {
   }
 };
 
+// ================== RESETEAR CONTRASEÑA (SOLO ADMIN) ==================
+const resetEmployeePassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { new_password } = req.body;
+
+    // Convertimos la nueva contraseña en un hash para no guardar texto plano.
+    const salt = await bcrypt.genSalt(10);
+    const password_hash = await bcrypt.hash(new_password, salt);
+
+    // Solo actualizamos el hash en BD; no pedimos contraseña actual al empleado.
+    const updated = await userModel.updatePartial(id, { password_hash });
+
+    if (!updated) {
+      return res.status(404).json({
+        message: 'Empleado no encontrado'
+      });
+    }
+
+    // Dejamos evidencia de quién hizo el cambio para auditoría.
+    await auditLogModel.create({
+      user_id: req.user.id,
+      action: 'RESET_PASSWORD',
+      entity: 'EMPLEADO',
+      entity_id: id,
+      details: {
+        changed_by_role: req.user.rol
+      }
+    });
+
+    return res.json({
+      message: 'Contraseña actualizada correctamente por administrador'
+    });
+  } catch (error) {
+    console.error('Error al resetear contraseña:', error);
+    return res.status(500).json({
+      message: 'Error al resetear contraseña'
+    });
+  }
+};
+
 
 module.exports = {
   register,

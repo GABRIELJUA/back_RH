@@ -3,6 +3,32 @@ const auditLogModel = require('../models/auditLogModel');
 const bcrypt = require('bcrypt');
 
 const { ROLES_VALIDOS } = require('../middlewares/validationMiddleware');
+const { getPagination } = require('../utils/pagination');
+
+
+const ROLES_SISTEMA = ['ADMIN', 'ADMIN_EDITOR', 'ADMIN_LECTURA'];
+
+const parseRolesQuery = (rolesQuery) => {
+  if (!rolesQuery) {
+    return null;
+  }
+
+  const roles = String(rolesQuery)
+    .split(',')
+    .map((role) => role.trim())
+    .filter(Boolean);
+
+  if (!roles.length) {
+    return [];
+  }
+
+  const invalidRoles = roles.filter((role) => !ROLES_VALIDOS.includes(role));
+  if (invalidRoles.length) {
+    return { invalid: invalidRoles };
+  }
+
+  return [...new Set(roles)];
+};
 
 // ================== REGISTRAR EMPLEADO ==================
 const register = async (req, res) => {
@@ -159,10 +185,18 @@ const updateEmployee = async (req, res) => {
 // ================== LISTAR EMPLEADOS ==================
 const getEmployees = async (req, res) => {
   try {
+    const parsedRoles = parseRolesQuery(req.query.roles);
+    if (parsedRoles && parsedRoles.invalid) {
+      return res.status(400).json({
+        message: `Roles no válidos: ${parsedRoles.invalid.join(', ')}`
+      });
+    }
+
     const filters = {
       departamento: req.query.departamento,
       puesto: req.query.puesto,
       estatus: req.query.estatus,
+      roles: parsedRoles,
       q: req.query.q
     };
 
@@ -172,6 +206,27 @@ const getEmployees = async (req, res) => {
   } catch (error) {
     console.error('Error al listar empleados:', error);
     res.status(500).json({ message: 'Error al obtener empleados' });
+  }
+};
+
+
+// ================== LISTAR USUARIOS DEL SISTEMA ==================
+const getSystemUsers = async (req, res) => {
+  try {
+    const filters = {
+      roles: ROLES_SISTEMA,
+      q: req.query.q
+    };
+
+    const pagination = getPagination(req.query);
+    const users = await userModel.getAll(filters, pagination);
+
+    return res.json(users);
+  } catch (error) {
+    console.error('Error al listar usuarios del sistema:', error);
+    return res.status(500).json({
+      message: 'Error al obtener usuarios del sistema'
+    });
   }
 };
 
@@ -320,6 +375,7 @@ const resetEmployeePassword = async (req, res) => {
 module.exports = {
   register,
   getEmployees,
+  getSystemUsers,
   getEmployeeById,
   updateEmployee,
   getMyProfile,

@@ -3,6 +3,7 @@ const router = express.Router();
 
 const {
   getEmployees,
+  getSystemUsers,
   register,
   updateEmployee,
   getEmployeeById,
@@ -27,6 +28,8 @@ router.put('/profile/me', verifyToken, validateProfilePayload, updateMyProfile);
 
 // ================== ADMIN / RH ==================
 router.get('/', verifyToken, allowRoles('ADMIN', 'ADMIN_EDITOR', 'ADMIN_LECTURA'), getEmployees);
+
+router.get('/system-users', verifyToken, allowRoles('ADMIN', 'ADMIN_EDITOR', 'ADMIN_LECTURA'), getSystemUsers);
 
 router.post(
   '/register',

@@ -25,12 +25,29 @@ La paginación es **opcional** y se activa enviando `page` y/o `limit`.
 Query params soportados:
 - `departamento`
 - `puesto`
-- `estatus` (rol)
+- `estatus` (rol exacto)
+- `roles` (lista CSV de roles, por ejemplo `ADMIN,ADMIN_EDITOR`)
+- `q` (búsqueda por nombre/apellidos/nómina)
+- `page`, `limit`
+
+Ejemplos:
+- `/api/employees?departamento=RH&puesto=Recepcion&q=juan&page=1&limit=10`
+- `/api/employees?roles=ADMIN,ADMIN_EDITOR,ADMIN_LECTURA&page=1&limit=10`
+
+### Usuarios del sistema (IAM)
+`GET /api/employees/system-users`
+
+Este endpoint devuelve únicamente cuentas con rol de acceso al sistema:
+- `ADMIN`
+- `ADMIN_EDITOR`
+- `ADMIN_LECTURA`
+
+Query params soportados:
 - `q` (búsqueda por nombre/apellidos/nómina)
 - `page`, `limit`
 
 Ejemplo:
-`/api/employees?departamento=RH&puesto=Recepcion&q=juan&page=1&limit=10`
+`/api/employees/system-users?q=ana&page=1&limit=10`
 
 ### Comunicados
 `GET /api/comunicados` y `GET /api/comunicados/public`

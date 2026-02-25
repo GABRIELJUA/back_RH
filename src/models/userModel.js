@@ -150,6 +150,12 @@ const getAll = async (filters = {}, pagination = null) => {
         values.push(filters.estatus);
     }
 
+    if (Array.isArray(filters.roles) && filters.roles.length) {
+        const placeholders = filters.roles.map(() => '?').join(', ');
+        whereClauses.push(`rol IN (${placeholders})`);
+        values.push(...filters.roles);
+    }
+
     if (filters.q) {
         whereClauses.push(`(
             nombre LIKE ? OR

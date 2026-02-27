@@ -14,6 +14,7 @@ const comunicadoRoutes = require('./routes/comunicadoRoutes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const vacacionesRoutes = require('./routes/vacaciones.routes');
 const notificacionesRoutes = require('./routes/notificaciones.routes');
+const galleryRoutes = require('./routes/galleryRoutes');
 
 const app = express();
 app.use('/uploads', express.static('uploads'));
@@ -40,6 +41,7 @@ app.use('/api/comunicados', comunicadoRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/vacaciones', vacacionesRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
+app.use('/api/galeria', galleryRoutes);
 
 app.get('/', (req, res) => {
   res.send('Servidor del Hotel Posada Tampico funcionando 🏨');
